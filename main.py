@@ -1,13 +1,8 @@
 import argparse
 import os
-import urllib2
-
-import time
 from bs4 import BeautifulSoup
 import requests
 import re
-import json
-
 
 
 def parse_ebay(page_num=1):
@@ -20,38 +15,41 @@ def parse_ebay(page_num=1):
             r = requests.get(next_page_link)
         data = r.text
         soup = BeautifulSoup(data)
-        for elem in soup.find_all('li', attrs={'class':'sresult lvresult clearfix li shic'}):
+        for elem in soup.find_all('li', attrs={'class': 'sresult lvresult clearfix li shic'}):
             title = elem.find('h3', attrs={'class': 'lvtitle'}).text.encode('utf-8')
             price = elem.find('li', attrs={'class': 'lvprice prc'}).text
+            link = elem.find('h3', attrs={'class': 'lvtitle'}).find('a').get('href')
+            # print link
             price = re.findall("\d+\.\d+", price)
             if len(price) != 1:
-                price_title[title] = price[1]
+                price_title[title] = price[1]+", "+link
             else:
-                price_title[title] = price[0]
-        # print price_title
+                price_title[title] = price[0]+", "+link
         next_page_link = soup.find('a', attrs={'class': 'gspr next'}).get('href')
-        # print next_page_link.get('href')
-    with open('./output/results.txt', 'w') as outfile:
-        json.dump(price_title, outfile)
     return price_title
 
 
 def parse_amazon(titles_prices):
+    if not os.path.exists('./output/'):
+        os.makedirs('./output/')
+    else:
+        open('./output/results.txt', 'w')
     for title, e_price in titles_prices.iteritems():
+        title = title.strip()
         r = requests.get('http://www.amazon.com/s/ref=nb_sb_noss_1?url=search-alias%3Daps&field-keywords='+title.replace("\"", ""))
         data = r.text
         soup = BeautifulSoup(data)
         if soup.find('li', attrs={'class': 's-result-item celwidget'}) is not None:
             if soup.find('span', attrs={'class': 'a-size-base a-color-price s-price a-text-bold'}) is not None:
-                # print soup.find('span', attrs={'class': 'a-size-base a-color-price s-price a-text-bold'}).text
+                a_link = soup.find('a', attrs={'class': 'a-link-normal s-access-detail-page  a-text-normal'}).get('href')
                 a_price = soup.find('span', attrs={'class': 'a-size-base a-color-price s-price a-text-bold'}).text
                 a_price = re.findall("\d+\.\d+", a_price)
-                print ("Ebay price: '%s' ----------------> Amazon price: '%s'" % (e_price, a_price[0]))
-                if float(a_price[0]) > float(e_price):
+                # print ("Ebay price: '%s' ----------------> Amazon price: '%s'" % (e_price, a_price[0]))
+                if float(a_price[0]) > float(e_price[0]):
+                    with open('./output/results.txt', 'a') as outfile:
+                        # json.dump(price_title, outfile)
+                        outfile.write("Ebay price: {}, Amazon price: {}, product name: {}, {}\n\n".format(str(e_price), str(a_price[0]), str(title), a_link))
                     print a_price
-
-            # print soup.find('span', attrs={'class': 'a-size-base a-color-price s-price a-text-bold'}).text
-        # print len(soup.find_all('h2', attrs={'class': 'a-size-medium a-color-null s-inline  s-access-title  a-text-normal'}))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run parser')
