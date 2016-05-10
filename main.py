@@ -51,7 +51,7 @@ def parse_amazon(titles_prices):
                 print e_price[0]
                 if float(a_price[0]) > float(e_price[0]):
                     with open('./output/results.txt', 'a') as outfile:
-                        outfile.write("Ebay price: {}, Amazon price: {}, product name: {}, {}\n\n".format(str(e_price), str(a_price[0]), str(title), a_link))
+                        outfile.write("Ebay price: {}, {}, Amazon price: {}, product name: {}, {}\n\n".format(str(e_price[0]), str(e_price[1]), str(a_price[0]), str(title), a_link))
                     # print a_price
 
 if __name__ == "__main__":
